@@ -1,0 +1,59 @@
+/* alert style */
+.custom-alert {
+    position: fixed;
+    z-index: 999999;
+    bottom: calc(10vh);
+    max-width: calc(70vw);
+    min-width: calc(20vw);
+    left: 50%;
+    -webkit-transform: translate(-50%, 0);
+    -moz-transform: translate(-50%, 0);
+    -ms-transform: translate(-50%, 0);
+    -o-transform: translate(-50%, 0);
+    transform: translate(-50%, 0);
+}
+
+/* message notification style */
+.custom-message-notifications {
+    position: fixed;
+    z-index: 99999;
+    top: calc(5vh);
+    right: 1%;
+    width: calc(33vw);
+}
+@media (max-width: 900px) {
+    .custom-message-notifications {
+        width: calc(50vw);
+    }
+}
+@media (max-width: 450px) {
+    .custom-message-notifications {
+        width: calc(90vw);
+    }
+}
+
+.button-loader-text {
+    font-size: 16px;
+    line-height: 20px;
+}
+.button-loader {
+    border: 5px solid white;
+    border-radius: 50%;
+    border-top: 5px solid #5a3f4e;
+    border-bottom: 5px solid #5a3f4e;
+    width: 20px;
+    height: 20px;
+    -webkit-animation: spin 2s linear infinite;
+    animation: spin 2s linear infinite;
+    display: inline-block;
+}
+
+@-webkit-keyframes spin {
+    0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

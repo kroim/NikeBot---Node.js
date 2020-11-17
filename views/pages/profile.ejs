@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+
+<body data-sa-theme="2">
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<section class="content">
+    <header class="content__title">
+        <h1>Account Settings</h1>
+    </header>
+    <div class="card profile">
+        <div class="profile__img">
+            <img src="<%= user.avatar %>" alt="Profile Avatar" id="profile_avatar">
+            <input type="file" style="display: none" id="profile_avatar_input">
+            <a href="javascript:" class="zwicon-camera profile__img__edit" onclick="$('#profile_avatar_input').click()"></a>
+        </div>
+        <div class="profile__info">
+            <ul class="icon-list">
+                <li><i class="zwicon-user-circle"></i> <%= user.name %></li>
+                <li><i class="zwicon-mail"></i> <%= user.email %></li>
+                <li>
+                    <button class="btn btn-theme-dark" onclick="saveAvatar()"><%= i18n.__('Save') %></button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <form id="profile_form">
+                        <div class="form-group">
+                            <label>User Name</label>
+                            <input type="text" class="form-control" id="profile_name" value="<%= user.name %>">
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" class="form-control" id="profile_email" value="<%= user.email %>" disabled>
+                        </div>
+                        <% if (user.payment_flag ) { %>
+                            <div class="form-group">
+                                <h5 class="card-body__title">Verified Payment Card on Nike</h5>
+                                <div class="toggle-switch toggle-switch--green">
+                                    <input type="checkbox" class="toggle-switch__checkbox" checked disabled>
+                                    <i class="toggle-switch__helper"></i>
+                                </div>
+                            </div>
+                        <% } else { %>
+                            <div class="form-group">
+                                <h5 class="card-body__title">Non-Verified Payment Card on Nike</h5>
+                                <div class="toggle-switch toggle-switch--teal">
+                                    <input type="checkbox" class="toggle-switch__checkbox" disabled>
+                                    <i class="toggle-switch__helper"></i>
+                                </div>
+                            </div>
+                        <% } %>
+                        <% if (user.address_flag ) { %>
+                            <div class="form-group">
+                                <h5 class="card-body__title">Verified Billing Address on Nike</h5>
+                                <div class="toggle-switch toggle-switch--green">
+                                    <input type="checkbox" class="toggle-switch__checkbox" checked disabled>
+                                    <i class="toggle-switch__helper"></i>
+                                </div>
+                            </div>
+                        <% } else { %>
+                            <div class="form-group">
+                                <h5 class="card-body__title">Non Verified Billing Address on Nike</h5>
+                                <div class="toggle-switch toggle-switch--teal">
+                                    <input type="checkbox" class="toggle-switch__checkbox" disabled>
+                                    <i class="toggle-switch__helper"></i>
+                                </div>
+                            </div>
+                        <% } %>
+                        <div class="form-group">
+                            <label>Security Code of Card</label>
+                            <input type="number" class="form-control" id="profile_cvc" value="<%= user.cvc %>" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" class="form-control" id="profile_password" required>
+                        </div>
+                        <div class="form-group" style="text-align: center">
+                            <button type="submit" class="btn btn-success">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form id="profile_password_form">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <input type="password" class="form-control" id="profile_current_password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" class="form-control" id="profile_new_password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" class="form-control" id="profile_confirm_password" required>
+                        </div>
+                        <div class="form-group" style="text-align: center">
+                            <button type="submit" class="btn btn-success">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('../partials/footer') %>
+<%- include('../partials/foot') %>
+<script>
+    $('#profile_avatar_input').on('change', function (evt) {
+        let reader = new FileReader();
+        reader.onload = function (evt) {
+            $('#profile_avatar').attr('src', evt.target.result);
+        };
+        reader.readAsDataURL(evt.target.files[0]);
+    });
+
+    function saveAvatar() {
+        let avatarImg = $('#profile_avatar').attr('src');
+        if (avatarImg.length < 1000) {
+            customAlert("Select a image");
+            return;
+        }
+        $.ajax({
+            url: '/change-profile',
+            method: 'post',
+            data: {
+                method_type: 'avatar',
+                avatarImg: avatarImg
+            },
+            success: function (res) {
+                if (res.status === 'success') {
+                    customAlert(res.message, true);
+                    $('.user__info .user__img').attr('src', res.avatarPath);
+                } else customAlert(res.message);
+            }
+        })
+    }
+
+    $('#profile_form').on('submit', function (e) {
+        e.preventDefault();
+        $.ajax({
+            url: '/change-profile',
+            method: 'post',
+            data: {
+                method_type: 'profile',
+                name: $('#profile_name').val(),
+                cvc: $('#profile_cvc').val(),
+                password: $('#profile_password').val(),
+            },
+            success: function (res) {
+                if (res.status === 'success') customAlert(res.message, true);
+                else customAlert(res.message);
+            }
+        })
+    });
+    $('#profile_password_form').on('submit', function (e) {
+        e.preventDefault();
+        let current_password = $('#profile_current_password').val();
+        let new_password = $('#profile_new_password').val();
+        let confirm_password = $('#profile_confirm_password').val();
+        if (new_password !== confirm_password) {
+            customAlert("New password is not matched");
+            return;
+        }
+        $.ajax({
+            url: '/change-profile',
+            method: 'post',
+            data: {
+                method_type: 'password',
+                current_password: current_password,
+                new_password: new_password,
+            },
+            success: function (res) {
+                if (res.status === 'success') customAlert(res.message, true);
+                else customAlert(res.message);
+            }
+        })
+    })
+</script>
+</body>
+</html>

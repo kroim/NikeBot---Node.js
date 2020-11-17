@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<style>
+    .login__logo {
+        width: 100%;
+    }
+    .login__logo img {
+        width: 100%;
+    }
+    .btn-primary:focus {
+        color: #fff;
+        background-color: #0069d9;
+        border-color: #0062cc;
+    }
+</style>
+<body data-sa-theme="2">
+
+<div class="page-loader">
+    <div class="page-loader__spinner">
+        <svg viewBox="25 25 50 50">
+            <circle cx="50" cy="50" r="20" fill="none" stroke-width="2" stroke-miterlimit="10" />
+        </svg>
+    </div>
+</div>
+
+<div class="login">
+    <!-- Login -->
+    <div class="login__block active" id="l-login">
+        <div class="login__block__header">
+            <div class="login__logo">
+                <img src="/images/logo.png">
+                <p>Login</p>
+            </div>
+
+            <div class="actions actions--inverse login__block__actions">
+                <div class="dropdown">
+                    <i data-toggle="dropdown" class="zwicon-more-h actions__item"></i>
+
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="/forgot-password">Forgot password?</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form class="login__block__body" id="login_form">
+            <div class="form-group">
+                <input type="text" class="form-control text-center" name="login_email" placeholder="Email Address" required>
+            </div>
+
+            <div class="form-group">
+                <input type="password" class="form-control text-center" name="login_password" placeholder="Password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submit_login">Login</button>
+        </form>
+
+    </div>
+
+</div>
+
+<%- include('../partials/terms-footer') %>
+<%- include('../partials/footer') %>
+<%- include('../partials/foot') %>
+
+<script>
+    $(function () {
+        $('input[name="login_email"]')[0].focus();
+    });
+    $('#login_form').on('submit', function (e) {
+        e.preventDefault();
+        let email = $('#login_form input[name="login_email"]').val();
+        let password = $('#login_form input[name="login_password"]').val();
+        $('#login_form button[type="submit"]').attr('disabled', true);
+        $('.page-loader').css('display', 'flex');
+        $.ajax({
+            url: '/login',
+            method: 'post',
+            data: {
+                email: email,
+                password: password,
+            },
+            success: function (res) {
+                $('.page-loader').css('display', 'none');
+                if (res.status === 'success') {
+                    customAlert(res.message, true);
+                    setTimeout(function () {
+                        location.href = '/'
+                    }, 2500);
+                } else customAlert(res.message)
+                $('#login_form button[type="submit"]').attr('disabled', false);
+            }
+        })
+    })
+</script>
+</body>
+</html>

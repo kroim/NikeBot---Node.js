@@ -1,0 +1,13 @@
+{
+	"Login": "Login",
+	"Password is not correct": "Password is not correct",
+	"Login success": "Login success",
+	"Login credentials are not valid": "Login credentials are not valid",
+	"Login is success": "Login is success",
+	"Login credentials are not valid1": "Login credentials are not valid1",
+	"Login credentials are not valid2": "Login credentials are not valid2",
+	"Save": "Save",
+	"Profile is updated successfully": "Profile is updated successfully",
+	"Password is updated successfully": "Password is updated successfully",
+	"Avatar is updated successfully": "Avatar is updated successfully"
+}

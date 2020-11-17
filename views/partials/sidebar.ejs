@@ -1,0 +1,41 @@
+<style>
+    i {
+        margin-right: .6rem;
+    }
+
+    .price-table__item--popular .price-table__action {
+        background: green;
+    }
+
+    .price-table__action {
+        background: orange;
+    }
+
+</style>
+<aside class="sidebar ">
+    <div class="scrollbar">
+        <div class="user">
+            <div class="user__info">
+                <img class="user__img" src="<%= session.user.avatar %>" alt="Avatar">
+                <div style="word-break: break-all">
+                    <div class="user__name"><%= session.user.name %></div>
+                    <div class="user__email"><%= session.user.email %></div>
+                    <div class="user__multi_store">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <ul class="navigation">
+            <li class="<%= (tab_text == 'dashboard') ? 'navigation__active' : '' %>">
+                <a href="/"><i class="zwicon-home"></i> Dashboard</a>
+            </li>
+            <li class="<%= (tab_text == 'profile') ? 'navigation__active' : '' %>">
+                <a href="/profile"><i class="zwicon-user"></i> Profile</a>
+            </li>
+            <li>
+                <a href="/logout"><i class="zwicon-arrow-circle-right"></i> Logout</a>
+            </li>
+        </ul>
+    </div>
+</aside>

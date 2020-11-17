@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<link rel="stylesheet" href="/resources/vendors/sweetalert2/sweetalert2.min.css">
+<style>
+    img {
+        height: 40px;
+    }
+</style>
+<body data-sa-theme="2">
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<section class="content">
+    <header class="content__title">
+        <h1>Dashboard</h1>
+    </header>
+    <div class="card">
+        <div class="card-body">
+            <div class="tab-container">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#in-stock" role="tab">In Stock</a>
+                    </li>
+<!--                    <li class="nav-item">-->
+<!--                        <a class="nav-link" data-toggle="tab" href="#orders" role="tab">Orders</a>-->
+<!--                    </li>-->
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#logs" role="tab">Logs</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <div class="tab-pane active fade show" id="in-stock" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label>SKU</label>
+                                <input class="form-control" id="stock_sku" value="<%= sku %>" placeholder="ex: CK6649-100">
+                            </div>
+                            <div class="col-md-2 col-sm-6 mb-2">
+                                <label>Colors</label>
+                                <select class="form-control page-select" id="stock_colors">
+                                    <option value="All" <%= (color == 'All')?'selected':'' %>>All Colors</option>
+                                    <option value="Black" <%= (color == 'Black')?'selected':'' %>>Black</option>
+                                    <option value="Red" <%= (color == 'Red')?'selected':'' %>>Red</option>
+                                    <option value="Brown" <%= (color == 'Brown')?'selected':'' %>>Brown</option>
+                                    <option value="White" <%= (color == 'White')?'selected':'' %>>White</option>
+                                    <option value="Blue" <%= (color == 'Blue')?'selected':'' %>>Blue</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 col-sm-6 mb-2" id="stock_size">
+                                <label>Sizes</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="stock_size_min" value="<%= size_min %>" placeholder="min">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="stock_size_max" value="<%= size_max %>" placeholder="max">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-sm-6 mb-2" id="stock_price">
+                                <label>Prices</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="stock_price_min" value="<%= price_min %>" placeholder="min">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="stock_price_max" value="<%= price_max %>" placeholder="max">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6 mb-2">
+                                <label>Action</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <button class="btn btn-success btn-block mb-3" onclick="runBot()" type="button" id="run_button">Run</button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-danger btn-block mb-3" onclick="stopBot()" type="button" id="stop_button">STOP</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="stock_table" class="table table-bordered table-striped text-center mb-0">
+                                <thead>
+                                <tr>
+                                    <th style="width: 7%">ID</th>
+                                    <th style="width: 10%">Image</th>
+                                    <th style="width: 50%">Title</th>
+                                    <th style="width: 15%">Color</th>
+                                    <th style="width: 15%">Price</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <% for (let i = 0; i < products.length; i++) { %>
+                                    <tr>
+                                        <td><%= i + 1 %></td>
+                                        <td><img src="<%= products[i].image %>"></td>
+                                        <td><%= products[i].title %></td>
+                                        <td><%= products[i].color %></td>
+                                        <td><%= products[i].price %></td>
+                                    </tr>
+                                <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="orders" role="tabpanel">
+                        <div class="table-responsive">
+                            <table id="order_table" class="table table-bordered table-striped text-center mb-0">
+                                <thead>
+                                <tr>
+                                    <th style="width: 5%">ID</th>
+                                    <th style="width: 10%">Image</th>
+                                    <th style="width: 70%">Title</th>
+                                    <th style="width: 10%">Price</th>
+                                </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="logs" role="tabpanel">
+                        <div class="table-responsive">
+                            <table id="log_table" class="table table-bordered table-striped text-center mb-0">
+                                <thead>
+                                <tr>
+                                    <th style="width: 10%">Time</th>
+                                    <th style="width: 90%">Content</th>
+                                </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('../partials/footer') %>
+<%- include('../partials/foot') %>
+<script src="/resources/vendors/sweetalert2/sweetalert2.all.min.js"></script>
+<script>
+    $(function () {
+        $('#stock_table').DataTable({
+            bPaginate: false,
+            bInfo: false,
+            searching: false,
+            bSort: false,
+        });
+        $('#order_table').DataTable({
+            bPaginate: false,
+            bInfo: false,
+            searching: false,
+            bSort: false,
+        });
+        $('#log_table').DataTable({
+            bPaginate: false,
+            bInfo: false,
+            searching: false,
+            bSort: false,
+        });
+    });
+    function openCustomError() {
+        Swal.fire(
+            'Account Verification',
+            'You should verify payment card, bill address in nike account, card secure code on your profile!',
+            'error'
+        )
+    }
+    let botTimer;
+    function submitRun() {
+        console.log("Submit running ...");
+        let sku = $('#stock_sku').val();
+        let color = $('#stock_colors').val();
+        let size_min = $('#stock_size_min').val();
+        let size_max = $('#stock_size_max').val();
+        let price_min = $('#stock_price_min').val();
+        let price_max = $('#stock_price_max').val();
+        $.ajax({
+            url: '/app-run',
+            method: 'post',
+            data: {
+                sku: sku,
+                color: color,
+                size_min: size_min,
+                size_max: size_max,
+                price_min: price_min,
+                price_max: price_max,
+            },
+            success: function (res) {
+                if (res.status === 'success') {
+                    customAlert(res.message, true);
+                    console.log(res.products);
+                    reloadStock(res.products);
+                }
+                else if (res.status === 'verify') openCustomError();
+                else customAlert(res.message);
+            }
+        })
+    }
+    function runBot() {
+        $('#run_button').text("Running ...");
+        submitRun();
+        botTimer = setInterval(() => {
+            submitRun();
+        }, 180000);
+    }
+    function stopBot() {
+        $('#stop_button').text("Stopping ...");
+        clearInterval(botTimer);
+        $.ajax({
+            url: '/app-stop',
+            method: 'post',
+            data: {},
+            success: function (res) {
+                if (res.status === 'success') {
+                    customAlert(res.message, true);
+                    setTimeout(function () {
+                        $('#stop_button').text("Stop");
+                        $('#run_button').text("Run");
+                    }, 3000);
+                }
+            }
+        })
+    }
+    function reloadStock(items) {
+        let tbody = '';
+        for (let i = 0; i < items.length; i++) {
+            tbody += '<tr><td>' + (i + 1) + '</td>' +
+                '<td><img src="' + items[i].image + '"></td>' +
+                '<td>' + items[i].title + '</td>' +
+                '<td>' + items[i].color + '</td>' +
+                '<td>' + items[i].price+ '</td></tr>';
+        }
+        $('#stock_table tbody').html(tbody);
+    }
+</script>
+</body>
+</html>
