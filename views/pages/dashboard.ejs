@@ -135,7 +135,7 @@
                                 <tbody>
                                 <% for (let i = 0; i < logs.length; i++) { %>
                                     <tr>
-                                        <td><%= logs[i].created_at %></td>
+                                        <td><%= new Date(logs[i].created_at).toISOString() %></td>
                                         <td><%= logs[i].type %></td>
                                         <td><%= logs[i].text %></td>
                                     </tr>

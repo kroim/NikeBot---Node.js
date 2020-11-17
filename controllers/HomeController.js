@@ -22,7 +22,7 @@ module.exports = BaseController.extend({
         }
         let user = await UserModel.findOne({email: nikeEmail});
         let sku = ''; let color = 'All'; let size_min = 0; let size_max = 99; let price_min = 0; let price_max = 9999;
-        let logs = await LogModel.find({user_id: user.id});
+        let logs = await LogModel.find({user_id: user.id}).sort({created_at: -1});
         let v = new View(res, 'pages/dashboard');
         v.render({
             title: 'NikeBot | Home',
