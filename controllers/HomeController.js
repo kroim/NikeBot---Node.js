@@ -22,15 +22,7 @@ module.exports = BaseController.extend({
         }
         let user = await UserModel.findOne({email: nikeEmail});
         let sku = ''; let color = 'All'; let size_min = 0; let size_max = 99; let price_min = 0; let price_max = 9999;
-        // try {
-        //     color = that.nBrowser[nikeEmail].color;
-        //     size_min = that.nBrowser[nikeEmail].size_min;
-        //     size_max = that.nBrowser[nikeEmail].size_max;
-        //     price_min = that.nBrowser[nikeEmail].price_min;
-        //     price_max = that.nBrowser[nikeEmail].price_max;
-        // } catch (e) {
-        //     console.log("nBrowser is not defined");
-        // }
+        let logs = await LogModel.find({user_id: user.id});
         let v = new View(res, 'pages/dashboard');
         v.render({
             title: 'NikeBot | Home',
@@ -38,6 +30,7 @@ module.exports = BaseController.extend({
             i18n: res,
             tab_text: 'dashboard',
             user: user,
+            logs: logs,
             sku: sku,
             color: color,
             size_min: size_min,

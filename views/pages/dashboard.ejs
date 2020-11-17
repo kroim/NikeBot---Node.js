@@ -128,10 +128,19 @@
                                 <thead>
                                 <tr>
                                     <th style="width: 10%">Time</th>
-                                    <th style="width: 90%">Content</th>
+                                    <th style="width: 20%">Type</th>
+                                    <th style="width: 70%">Content</th>
                                 </tr>
                                 </thead>
-                                <tbody></tbody>
+                                <tbody>
+                                <% for (let i = 0; i < logs.length; i++) { %>
+                                    <tr>
+                                        <td><%= logs[i].created_at %></td>
+                                        <td><%= logs[i].type %></td>
+                                        <td><%= logs[i].text %></td>
+                                    </tr>
+                                <% } %>
+                                </tbody>
                             </table>
                         </div>
                     </div>
