@@ -56,12 +56,12 @@ module.exports = {
         const browser = await puppeteer.launch({
             ignoreHTTPSErrors: true,
             headless: false,
-            // headless: true,
             args: [`--window-size=1080,960`],
         });
         const tokenPage = await browser.newPage();
         const cartPage = await browser.newPage();
         const mainPage = await browser.newPage();
+        await mainPage.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
         await installMouseHelper(mainPage);
         await mainPage.goto(loginURL);
         await mainPage.waitForSelector('.emailAddress > input');
@@ -69,19 +69,19 @@ module.exports = {
         console.log("type email ...");
         await mainPage.focus('.emailAddress > input');
         await mainPage.keyboard.type(nikeEmail);
-        await mainPage.waitForTimeout(200);
+        await mainPage.waitForTimeout(1000);
         // Password
         console.log("type password ...");
         await mainPage.focus('.password > input');
         await mainPage.keyboard.type(nikePassword);
-        await mainPage.waitForTimeout(200);
+        await mainPage.waitForTimeout(2000);
         // Submit
         console.log("submit ...");
         await mainPage.keyboard.type(String.fromCharCode(13));
         // await mainPage.click(".loginSubmit > input");
-        await mainPage.waitForTimeout(17000);
+        await mainPage.waitForTimeout(9000);
         if (mainPage.url() === loginURL) {
-            browser.close();
+            // browser.close();
             return false;
         }
         // mainPage.goto(stockURL, {waitUntil: 'load', timeout: 0});
