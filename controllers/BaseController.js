@@ -81,8 +81,32 @@ module.exports = {
         // await mainPage.click(".loginSubmit > input");
         await mainPage.waitForTimeout(9000);
         if (mainPage.url() === loginURL) {
-            // browser.close();
-            return false;
+            let loginCount = 3;
+            for (let i = 0; i < loginCount; i++) {
+                let errorFlag = await mainPage.evaluate(()=>{
+                    let errorTag = document.querySelector('.nike-unite-error-panel');
+                    if (errorTag) {
+                        errorTag.querySelector('input[type="button"]').click();
+                        return true;
+                    } else return false;
+                });
+                if (errorFlag) {
+                    await mainPage.waitForTimeout(500);
+                    console.log("type password again...");
+                    await mainPage.focus('.password > input');
+                    await mainPage.keyboard.type(nikePassword);
+                    await mainPage.waitForTimeout(1000);
+                    // Submit
+                    console.log("submit ...");
+                    await mainPage.keyboard.type(String.fromCharCode(13));
+                    await mainPage.waitForTimeout(2000);
+                }
+            }
+            await mainPage.waitForTimeout(9000);
+            if (mainPage.url() === loginURL) {
+                await browser.close();
+                return false;
+            }
         }
         // mainPage.goto(stockURL, {waitUntil: 'load', timeout: 0});
         that.nBrowser[nikeEmail] = {browser: browser, mainPage: mainPage, tokenPage: tokenPage, cartPage: cartPage,
@@ -424,9 +448,13 @@ module.exports = {
     sessionClear: function (req, res, next) {
         try {
             this.nBrowser[req.session.user.email].browser.close();
+        } catch (e) {
+            console.log("Undefined browser session");
+        }
+        try {
             delete this.nBrowser[req.session.user.email];
         } catch (e) {
-            console.log("Logout error: ", e);
+            console.log("Undefined user session");
         }
         req.session.login = 0;
         req.session.user = null;
