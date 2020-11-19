@@ -79,7 +79,7 @@ module.exports = {
         console.log("submit ...");
         await mainPage.keyboard.type(String.fromCharCode(13));
         // await mainPage.click(".loginSubmit > input");
-        await mainPage.waitForTimeout(9000);
+        await mainPage.waitForTimeout(3000);
         if (mainPage.url() === loginURL) {
             let loginCount = 3;
             for (let i = 0; i < loginCount; i++) {
