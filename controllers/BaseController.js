@@ -81,7 +81,7 @@ module.exports = {
         // await mainPage.click(".loginSubmit > input");
         await mainPage.waitForTimeout(3000);
         if (mainPage.url() === loginURL) {
-            let loginCount = 3;
+            let loginCount = 5;
             for (let i = 0; i < loginCount; i++) {
                 let errorFlag = await mainPage.evaluate(()=>{
                     let errorTag = document.querySelector('.nike-unite-error-panel');
