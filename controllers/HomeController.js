@@ -101,15 +101,8 @@ module.exports = BaseController.extend({
         let size_max = parseFloat(req.body.size_max);
         let price_min = parseFloat(req.body.price_min);
         let price_max = parseFloat(req.body.price_max);
-        // that.nBrowser[user.email].sku = sku;
-        // that.nBrowser[user.email].color = color;
-        // that.nBrowser[user.email].size_min = size_min;
-        // that.nBrowser[user.email].size_max = size_max;
-        // that.nBrowser[user.email].price_min = price_min;
-        // that.nBrowser[user.email].price_max = price_max;
         let stockProducts = await that.getStockProducts(user.email);
         let products = await that.searchProducts(user.email, stockProducts, color, size_min, size_max, price_min, price_max);
-        // let products = [];
         try {
             that.nikeCarts(user.email, products, sku, size_min, size_max, user.cvc);
             // that.nikeCheckout(user.email, user.cvc);
