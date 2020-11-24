@@ -3,6 +3,7 @@
 Based on node.js application to make orders using platform interface with search products
 with mongodb database
 ## -- install
+Install node.js, mongodb, chrome browser
 ```
 npm install
 ```
