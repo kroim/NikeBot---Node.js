@@ -213,6 +213,10 @@
         })
     }
     function runBot() {
+        if ($('#run_button').text() === "Running ...") {
+            customAlert("Already running");
+            return;
+        }
         $('#run_button').text("Running ...");
         submitRun();
         botTimer = setInterval(() => {
