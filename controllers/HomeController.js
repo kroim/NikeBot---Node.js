@@ -95,7 +95,13 @@ module.exports = BaseController.extend({
             text: "Running stock bot"
         });
         await logItem.save();
-        let sku = req.body.sku;
+        let skuString = req.body.sku;
+        let _sku = skuString.split(',');
+        let sku = [];
+        for (let i = 0; i < _sku.length; i++) {
+            if (_sku[i].trim()) sku.push(_sku[i].trim())
+        }
+        console.log(sku);
         let color = req.body.color;
         let size_min = parseFloat(req.body.size_min);
         let size_max = parseFloat(req.body.size_max);

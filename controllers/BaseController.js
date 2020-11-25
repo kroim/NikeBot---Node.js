@@ -53,48 +53,67 @@ module.exports = {
             headless: false,
             args: [`--window-size=1080,960`],
         });
+        try {
+            this.nBrowser[nikeEmail].browser.close();
+        } catch (e) {
+            console.log("Check existing Browser");
+        }
         const tokenPage = await browser.newPage();
         const cartPage = await browser.newPage({ context: 'default' });
         const mainPage = await browser.newPage({ context: 'another-context' });
-        await mainPage.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
-        // await installMouseHelper(mainPage);
-        await mainPage.goto(loginURL);
-        await mainPage.waitForSelector('.emailAddress > input');
-        await mainPage.waitForTimeout(3000);
-        await mainPage.focus('.emailAddress > input');
-        await mainPage.keyboard.type(nikeEmail);
-        await mainPage.waitForTimeout(1000);
-        await mainPage.focus('.password > input');
-        await mainPage.keyboard.type(nikePassword);
-        await mainPage.waitForTimeout(2000);
-        await mainPage.keyboard.type(String.fromCharCode(13));
-        await mainPage.waitForTimeout(3000);
-        if (mainPage.url() === loginURL) {
-            let loginCount = 5;
-            for (let i = 0; i < loginCount; i++) {
-                let errorFlag = await mainPage.evaluate(()=>{
-                    let errorTag = document.querySelector('.nike-unite-error-panel');
-                    if (errorTag) {
-                        errorTag.querySelector('input[type="button"]').click();
-                        return true;
-                    } else return false;
-                });
-                if (errorFlag) {
-                    await mainPage.waitForTimeout(500);
-                    console.log("type password again...");
-                    await mainPage.focus('.password > input');
-                    await mainPage.keyboard.type(nikePassword);
-                    await mainPage.waitForTimeout(1000);
-                    // Submit
-                    await mainPage.keyboard.type(String.fromCharCode(13));
-                    await mainPage.waitForTimeout(2000);
+        try {
+            delete this.nBrowser[nikeEmail];
+        } catch (e) {
+            console.log("Check existing user session");
+        }
+        try {
+            await mainPage.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36');
+            // await installMouseHelper(mainPage);
+            await mainPage.goto(loginURL);
+            await mainPage.waitForSelector('.emailAddress > input');
+            await mainPage.waitForTimeout(3000);
+            await mainPage.focus('.emailAddress > input');
+            await mainPage.keyboard.type(nikeEmail);
+            await mainPage.waitForTimeout(1000);
+            await mainPage.focus('.password > input');
+            await mainPage.keyboard.type(nikePassword);
+            await mainPage.waitForTimeout(2000);
+            await mainPage.keyboard.type(String.fromCharCode(13));
+            await mainPage.waitForTimeout(3000);
+            if (mainPage.url() === loginURL) {
+                let loginCount = 5;
+                for (let i = 0; i < loginCount; i++) {
+                    let errorFlag = await mainPage.evaluate(async ()=>{
+                        return await new Promise(((resolve, reject) => {
+                            let errorTag = document.querySelector('.nike-unite-error-panel');
+                            if (errorTag) {
+                                errorTag.querySelector('input[type="button"]').click();
+                                resolve(true);
+                            } else return resolve(false);
+                        }));
+                    });
+                    if (errorFlag) {
+                        await mainPage.waitForTimeout(500);
+                        console.log("type password again...");
+                        await mainPage.focus('.password > input');
+                        await mainPage.keyboard.type(nikePassword);
+                        await mainPage.waitForTimeout(1000);
+                        // Submit
+                        await mainPage.keyboard.type(String.fromCharCode(13));
+                        await mainPage.waitForTimeout(2000);
+                    }
+                }
+                await mainPage.waitForTimeout(9000);
+                if (mainPage.url() === loginURL) {
+                    await browser.close();
+                    return false;
                 }
             }
-            await mainPage.waitForTimeout(9000);
-            if (mainPage.url() === loginURL) {
+        } catch (e) {
+            try {
                 await browser.close();
-                return false;
-            }
+            } catch (e) {}
+            return false;
         }
         that.nBrowser[nikeEmail] = {browser: browser, mainPage: mainPage, tokenPage: tokenPage, cartPage: cartPage,
             color: "All", size_min: 0, size_max: 99, price_min: 0, price_max: 9999};
@@ -338,9 +357,15 @@ module.exports = {
                         visible: true,
                     });
                     // check sku
-                    let skuFlag = await itemPage.evaluate((sku) => {
-                        let skuText = 'SKU: ' + sku;
-                        return document.body.innerText.indexOf(skuText) > 10;
+                    let skuFlag = await itemPage.evaluate(async (sku) => {
+                        return await new Promise((resolve, reject) => {
+                            let _sku_flag = false;
+                            for (let _sku_index = 0; _sku_index < sku.length; _sku_index++) {
+                                let skuText = 'SKU: ' + sku[_sku_index];
+                                if (document.body.innerText.indexOf(skuText) > 10) _sku_flag = true;
+                            }
+                            resolve(_sku_flag);
+                        });
                     }, sku);
                     console.log("SKU Flag: ", skuFlag);
                     if (!skuFlag) continue;
