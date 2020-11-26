@@ -108,9 +108,10 @@ module.exports = BaseController.extend({
         let price_min = parseFloat(req.body.price_min);
         let price_max = parseFloat(req.body.price_max);
         let stockProducts = await that.getStockProducts(user.email);
+        let pageProducts = await that.getPageProducts(user.email);
         let products = await that.searchProducts(user.email, stockProducts, color, size_min, size_max, price_min, price_max);
         try {
-            that.nikeCarts(user.email, products, sku, size_min, size_max, user.cvc);
+            that.nikeCarts(user.email, pageProducts, sku, size_min, size_max, user.cvc);
             // that.nikeCheckout(user.email, user.cvc);
         } catch (e) {
             console.log("checkout error: ", e);

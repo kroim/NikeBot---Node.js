@@ -8,6 +8,17 @@ puppeteer.use(pluginStealth());
 let fetch = require('node-fetch');
 // let useragent = require('express-useragent');
 // const {installMouseHelper} = require('./install_mouse_helper');
+let nodemailer = require('nodemailer');
+let transporter = nodemailer.createTransport({
+    service: "gmail",
+    host: 'smtp.gmail.com',
+    port: 465,
+    auth: {
+        user: 'myflexflash@gmail.com',
+        pass: 'Amazon123'
+    },
+});
+
 
 let UserModel = require('../models/UserModel').User;
 let LogModel = require('../models/LogModel').Log;
@@ -59,8 +70,8 @@ module.exports = {
             console.log("Check existing Browser");
         }
         const tokenPage = await browser.newPage();
-        const cartPage = await browser.newPage({ context: 'default' });
-        const mainPage = await browser.newPage({ context: 'another-context' });
+        const cartPage = await browser.newPage({context: 'default'});
+        const mainPage = await browser.newPage({context: 'another-context'});
         try {
             delete this.nBrowser[nikeEmail];
         } catch (e) {
@@ -83,7 +94,7 @@ module.exports = {
             if (mainPage.url() === loginURL) {
                 let loginCount = 5;
                 for (let i = 0; i < loginCount; i++) {
-                    let errorFlag = await mainPage.evaluate(async ()=>{
+                    let errorFlag = await mainPage.evaluate(async () => {
                         return await new Promise(((resolve, reject) => {
                             let errorTag = document.querySelector('.nike-unite-error-panel');
                             if (errorTag) {
@@ -112,11 +123,11 @@ module.exports = {
         } catch (e) {
             try {
                 await browser.close();
-            } catch (e) {}
+            } catch (e) {
+            }
             return false;
         }
-        that.nBrowser[nikeEmail] = {browser: browser, mainPage: mainPage, tokenPage: tokenPage, cartPage: cartPage,
-            color: "All", size_min: 0, size_max: 99, price_min: 0, price_max: 9999};
+        that.nBrowser[nikeEmail] = {browser: browser, mainPage: mainPage, tokenPage: tokenPage, cartPage: cartPage};
         return true;
     },
     getNikeAbck: async function (nikeEmail) {
@@ -141,7 +152,7 @@ module.exports = {
         await tokenPage.goto(tokenURL, {waitUntil: 'load', timeout: 0});
         let content = await tokenPage.content();
         try {
-            content = content.replace( /(<([^>]+)>)/ig, '');
+            content = content.replace(/(<([^>]+)>)/ig, '');
             let json_content = JSON.parse(content);
             that.nBrowser[nikeEmail]["user_id"] = json_content.user_id;
             that.nBrowser[nikeEmail]["access_token"] = json_content.access_token;
@@ -184,7 +195,9 @@ module.exports = {
                     await user.updateOne({payment_flag: 1});
                     return true;
                 } else return false;
-            }).catch(()=>{return false;});
+            }).catch(() => {
+                return false;
+            });
     },
     checkBillAddress: async function (nikeEmail) {
         let nike_user_id = this.nBrowser[nikeEmail].user_id;
@@ -218,7 +231,9 @@ module.exports = {
                     console.log("success bill address");
                     return true;
                 } else return false;
-            }).catch(()=>{return false;});
+            }).catch(() => {
+                return false;
+            });
     },
     getApiProducts: async function () {
         let that = this;
@@ -248,7 +263,9 @@ module.exports = {
                 console.log("Success api products: ", json.objects.length);
                 // that.nBrowser[nikeEmail]['apiProducts'] = json.objects;
                 return json.objects;
-            }).catch(()=>{ return [];});
+            }).catch(() => {
+                return [];
+            });
     },
     getPageProducts: async function (nikeEmail) {
         let that = this;
@@ -272,7 +289,7 @@ module.exports = {
             }
             return products;
         })]);
-        console.log("pageProducts: ", pageProducts.length);
+        console.log("pageProducts: ", pageProducts);
         return pageProducts;
     },
     getStockProducts: async function (nikeEmail) {
@@ -369,6 +386,8 @@ module.exports = {
                     }, sku);
                     console.log("SKU Flag: ", skuFlag);
                     if (!skuFlag) continue;
+                    await that.scrollBoard(itemPage);
+                    await itemPage.waitForSelector('li[data-qa="size-available"] > button');
                     await itemPage.waitForTimeout(1000);
                     // check sizes
                     let sizeFlag = await itemPage.evaluate(async ({size_min, size_max}) => {
@@ -379,7 +398,7 @@ module.exports = {
                                 console.log("sizeButtons length: ", sizeButtons.length);
                                 let size_flag = false;
                                 for (let k = 0; k < sizeButtons.length; k++) {
-                                    let buttonText = sizeButtons[k].innerText.replace( /^\D+/g, '');
+                                    let buttonText = sizeButtons[k].innerText.replace(/^\D+/g, '');
                                     if (parseFloat(buttonText) >= size_min && parseFloat(buttonText) <= size_max) {
                                         console.log("Found size: ", buttonText);
                                         sizeButtons[k].click();
@@ -397,7 +416,10 @@ module.exports = {
                         }));
                     }, {size_min, size_max});
                     console.log("Size Flag: ", sizeFlag);
-                    if (sizeFlag) await itemPage.waitForTimeout(5000);
+                    if (sizeFlag) {
+                        await itemPage.waitForTimeout(5000);
+                        break;
+                    }
                 } catch (e) {
                     console.log("checkout failed");
                     console.log(e);
@@ -419,7 +441,7 @@ module.exports = {
                 console.log("cart page ...");
                 await cartPage.goto(cartURL, {waitUntil: "load", timeout: 0});
                 await cartPage.waitForSelector('button[data-automation="member-checkout-button"]');
-                let checkout_flag = await cartPage.evaluate(()=>{
+                let checkout_flag = await cartPage.evaluate(() => {
                     let checkoutButton = document.querySelectorAll('button[data-automation="member-checkout-button"]')[0];
                     if (checkoutButton.disabled) {
                         console.log("Disabled checkout button ...");
@@ -433,14 +455,13 @@ module.exports = {
                 console.log("clicked checkout ...", checkout_flag);
                 await cartPage.waitForTimeout(3000);
                 if (checkout_flag) {
-                    await that.nikeCheckout(nikeEmail, cvc)
+                    await that.nikeCheckout(nikeEmail, cvc, sku)
                 }
             } catch (e) {
-
             }
         }
     },
-    nikeCheckout: async function (nikeEmail, cvc) {
+    nikeCheckout: async function (nikeEmail, cvc, sku) {
         let logText = "Checkout products";
         let user = await UserModel.findOne({email: nikeEmail});
         let logItem = new LogModel({
@@ -466,7 +487,7 @@ module.exports = {
         // await cartPage.keyboard.type(cvc);
         await cartPage.waitForTimeout(3000);
         // await cartPage.waitForSelector('.continueToOrderReviewBtn');
-        await cartPage.evaluate(()=>{
+        await cartPage.evaluate(() => {
             document.querySelector('button[data-attr="continueToOrderReviewBtn"]').click()
         });
         await cartPage.waitForTimeout(500);
@@ -476,6 +497,20 @@ module.exports = {
         // await cartPage.evaluate(()=>{
         //     document.querySelectorAll('div.test-desktop-button > button')[0].click();
         // });
+        let mailOptions = {
+            from: 'myflexflash@gmail.com',
+            to: nikeEmail,
+            subject: 'Confirm Order',
+            text: sku.toString() + " product is ordered successfully."
+        };
+
+        transporter.sendMail(mailOptions, function(error, info){
+            if (error) {
+                console.log(error);
+            } else {
+                console.log('Email sent: ' + info.response);
+            }
+        });
         await cartPage.waitForTimeout(3000);
     },
     sessionClear: function (req, res, next) {
@@ -523,6 +558,18 @@ module.exports = {
                             lastScroll = scrollTop;
                         }
                     }, 200);
+                } catch (err) {
+                    reject(err.toString());
+                }
+            });
+        });
+    },
+    scrollBoard: async function (page) {
+        await page.evaluate(async () => {
+            await new Promise((resolve, reject) => {
+                try {
+                    window.scrollBy(0, 700);
+                    resolve();
                 } catch (err) {
                     reject(err.toString());
                 }
