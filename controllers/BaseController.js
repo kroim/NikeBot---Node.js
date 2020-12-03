@@ -27,6 +27,7 @@ let stockURL = 'https://www.nike.com/launch?s=in-stock';
 let cartURL = 'https://www.nike.com/cart';
 let checkoutURL = 'https://www.nike.com/checkout';
 let tokenURL = 'https://unite.nike.com/auth/unite_session_cookies/v1';
+let upcomingURL = 'https://www.nike.com/launch?s=upcoming';
 let product_selector = 'a[data-qa="product-card-link"]';
 
 module.exports = {
@@ -504,7 +505,7 @@ module.exports = {
             text: sku.toString() + " product is ordered successfully."
         };
 
-        transporter.sendMail(mailOptions, function(error, info){
+        transporter.sendMail(mailOptions, function (error, info) {
             if (error) {
                 console.log(error);
             } else {
@@ -576,4 +577,132 @@ module.exports = {
             });
         });
     },
+    getUpcomingProducts: async function () {
+        return await fetch("https://api.nike.com/product_feed/threads/v2/?anchor=0&count=21&filter=marketplace%28US%29&filter=language%28en%29&filter=upcoming%28true%29&filter=channelId%28010794e5-35fe-4e32-aaff-cd2c74f89d61%29&filter=exclusiveAccess%28true%2Cfalse%29&sort=effectiveStartSellDateAsc&fields=active%2Cid%2ClastFetchTime%2CproductInfo%2CpublishedContent.nodes%2CpublishedContent.subType%2CpublishedContent.properties.coverCard%2CpublishedContent.properties.productCard%2CpublishedContent.properties.products%2CpublishedContent.properties.publish.collections%2CpublishedContent.properties.relatedThreads%2CpublishedContent.properties.seo%2CpublishedContent.properties.threadType%2CpublishedContent.properties.custom%2CpublishedContent.properties.title", {
+            "headers": {
+                "accept": "*/*",
+                "accept-language": "en-US,en;q=0.9,pl;q=0.8",
+                "appid": "com.nike.commerce.snkrs.web",
+                "cache-control": "no-cache",
+                "content-type": "application/json; charset=UTF-8",
+                "nike-api-caller-id": "nike:snkrs:web:1.0",
+                "pragma": "no-cache",
+                "sec-fetch-dest": "empty",
+                "sec-fetch-mode": "cors",
+                "sec-fetch-site": "same-site",
+                "x-b3-parentspanid": "f95cb25e4354d55b",
+                "x-b3-spanid": "fc4ae927f16352f9",
+                "x-b3-traceid": "3875421f7679d484"
+            },
+            "referrer": "https://www.nike.com/",
+            "referrerPolicy": "strict-origin-when-cross-origin",
+            "body": null,
+            "method": "GET",
+            "mode": "cors"
+        }).then(res => res.json())
+            .then(json => {
+                console.log(json.objects.length);
+                return json.objects;
+            }).catch(() => {
+                return [];
+            });
+    },
+    searchUpcomingSKU: async function (products, sku, price_min, price_max) {
+        let res = [];
+        if (!sku.length) {
+            for (let i = 0; i < products.length; i++) {
+                if (parseInt(products[i].price) >= parseInt(price_min) && parseInt(products[i].price) <= parseInt(price_max))
+                    res.push(products[i])
+            }
+        } else {
+            for (let k = 0; k < sku.length; k++) {
+                if (sku.indexOf(products[k].sku) > -1) {
+                    console.log("SKU matched ... ");
+                    if (parseInt(products[k].price) >= parseInt(price_min) && parseInt(products[k].price) <= parseInt(price_max))
+                        res.push(products[k])
+                }
+            }
+        }
+        return res;
+    },
+    upcomingCarts: async function (nikeEmail, products, size_min, size_max, cvc) {
+        let that = this;
+        let gotoCart = false;
+        let browser = that.nBrowser[nikeEmail].browser;
+        let itemPage = await browser.newPage();
+        that.nBrowser[nikeEmail].itemPage = itemPage;
+        try {
+            for (let i = 0; i < products.length; i++) {
+                let product = products[i];
+                try {
+                    await itemPage.goto(product.anchor, {waitUntil: "load", timeout: 0});
+                    await itemPage.waitForSelector('div.buttoncount-1', {visible: true});
+                    await that.scrollBoard(itemPage);
+                    await itemPage.waitForSelector('li[data-qa="size-available"] > button');
+                    await itemPage.waitForTimeout(1000);
+                    let sizeFlag = await itemPage.evaluate(async ({size_min, size_max}) => {
+                        return await new Promise(((resolve, reject) => {
+                            try {
+                                let toolPanel = document.querySelector('div.buttoncount-1');
+                                let sizeButtons = toolPanel.querySelectorAll('li[data-qa="size-available"] > button');
+                                console.log("sizeButtons length: ", sizeButtons.length);
+                                let size_flag = false;
+                                for (let k = 0; k < sizeButtons.length; k++) {
+                                    let buttonText = sizeButtons[k].innerText.replace(/^\D+/g, '');
+                                    if (parseFloat(buttonText) >= size_min && parseFloat(buttonText) <= size_max) {
+                                        console.log("Found size: ", buttonText);
+                                        sizeButtons[k].click();
+                                        size_flag = true;
+                                        break;
+                                    }
+                                }
+                                setTimeout(function () {
+                                    toolPanel.querySelector('button[data-qa="feed-buy-cta"]').click();
+                                }, 500);
+                                resolve(size_flag);
+                            } catch (e) {
+                                reject(e.toString())
+                            }
+                        }));
+                    }, {size_min, size_max});
+                    console.log("Size Flag: ", sizeFlag);
+                    if (sizeFlag) {
+                        await itemPage.waitForTimeout(5000);
+                        break;
+                    }
+                } catch (e) {
+                    console.log("checkout failed");
+                    console.log(e);
+                }
+            }
+        } catch (e) {
+            try {
+                await that.nBrowser[nikeEmail].itemPage.close();
+            } catch (e) {
+                console.log("Item page session close");
+            }
+            gotoCart = false;
+        }
+        if (gotoCart) {
+            try {
+                await itemPage.waitForSelector('div.checkout-modal"]');
+                await itemPage.evaluate(() => {
+                    let submitButtons = document.querySelectorAll('button[data-qa="save-button"]');
+                    if (submitButtons.length) {
+                        submitButtons[submitButtons.length - 1].click();
+                    }
+                });
+            } catch (e) {
+            }
+        }
+    },
+    checkUpcomingSKU: async function (nikeEmail, all_products, sku, size_min, size_max, price_min, price_max, cvc) {
+        let products = await this.searchUpcomingSKU(all_products, sku, price_min, price_max);
+        for (let i = 0; i < products.length; i++) {
+            console.log(products[i].anchor);
+            console.log("Current Time: ", new Date().toISOString());
+            console.log("Publish Time: ", new Date(products[i]['publishDate']).toISOString());
+        }
+        await this.upcomingCarts(nikeEmail, products, size_min, size_max);
+    }
 };

@@ -101,22 +101,38 @@ module.exports = BaseController.extend({
         for (let i = 0; i < _sku.length; i++) {
             if (_sku[i].trim()) sku.push(_sku[i].trim())
         }
-        console.log(sku);
-        let color = req.body.color;
+        // let color = req.body.color;
         let size_min = parseFloat(req.body.size_min);
         let size_max = parseFloat(req.body.size_max);
         let price_min = parseFloat(req.body.price_min);
         let price_max = parseFloat(req.body.price_max);
-        let stockProducts = await that.getStockProducts(user.email);
-        let pageProducts = await that.getPageProducts(user.email);
-        let products = await that.searchProducts(user.email, stockProducts, color, size_min, size_max, price_min, price_max);
+        console.log("Running: ", sku, size_min, size_max, price_min, price_max);
+        // let stockProducts = await that.getStockProducts(user.email);
+        // let pageProducts = await that.getPageProducts(user.email);
+        // let products = await that.searchProducts(user.email, stockProducts, color, size_min, size_max, price_min, price_max);
+        let upcomingProducts = await that.getUpcomingProducts();
+        let u_products = [];
+        for (let k = 0; k < upcomingProducts.length; k++) {
+            let item = upcomingProducts[k];
+            let props = item['publishedContent']['properties'];
+            let p_info = item['productInfo'][0];
+            let u_item = {
+                anchor: 'https://www.nike.com/launch/t/' + props['seo']['slug'],
+                sku: props['products'][0]['styleColor'],
+                title: props['coverCard']['properties']['title'],
+                image: p_info['imageUrls']['productImageUrl'],
+                price: p_info['merchPrice']['currentPrice'],
+                publishDate: p_info['merchPrice']['commercePublishDate']
+            };
+            u_products.push(u_item);
+        }
         try {
-            that.nikeCarts(user.email, pageProducts, sku, size_min, size_max, user.cvc);
-            // that.nikeCheckout(user.email, user.cvc);
+            // that.nikeCarts(user.email, u_products, sku, size_min, size_max, user.cvc);
+            await that.checkUpcomingSKU(user.email, u_products, sku, size_min, size_max, price_min, price_max, user.cvc);
         } catch (e) {
             console.log("checkout error: ", e);
         }
-        return res.send({status: 'success', message: 'Running bot successfully', products: products});
+        return res.send({status: 'success', message: 'Running bot successfully', products: u_products});
     },
     stopBot: async function (req, res, next) {
         let user = await UserModel.findOne({id: req.session.user.id});
