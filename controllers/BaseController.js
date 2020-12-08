@@ -682,14 +682,23 @@ module.exports = {
         }
         if (gotoCart) {
             try {
-                await itemPage.waitForSelector('div.checkout-modal"]');
-                await itemPage.evaluate(() => {
-                    let submitButtons = document.querySelectorAll('button[data-qa="save-button"]');
-                    if (submitButtons.length) {
-                        submitButtons[submitButtons.length - 1].click();
-                    }
+                await itemPage.waitForTimeout(3000);
+                await itemPage.evaluate( async () => {
+                    await new Promise((resolve => {
+                        let submitButtons = document.querySelectorAll('button[data-qa="save-button"]');
+                        console.log("submitButtons: ", submitButtons.length);
+                        if (submitButtons.length) {
+                            submitButtons[submitButtons.length - 1].click();
+                        }
+                    }));
                 });
+                await itemPage.waitForTimeout(7000);
+                await itemPage.close();
             } catch (e) {
+                console.log("gotoCart: ", e.toString());
+                try {
+                    await itemPage.close();
+                } catch (e) {}
             }
         }
     },
