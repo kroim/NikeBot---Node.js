@@ -13,8 +13,11 @@ router.get('/profile', middleware_controller.m_checkLogin, function (req, res, n
 router.post('/change-profile', middleware_controller.m_checkLogin, function (req, res, next) {
     home_controller.changeProfile(req, res, next);
 });
+// router.post('/app-run', middleware_controller.m_checkLogin, function (req, res, next) {
+//     home_controller.runInStock(req, res, next);
+// });
 router.post('/app-run', middleware_controller.m_checkLogin, function (req, res, next) {
-    home_controller.runBot(req, res, next);
+    home_controller.runUpcoming(req, res, next);
 });
 router.post('/app-stop', middleware_controller.m_checkLogin, function (req, res, next) {
     home_controller.stopBot(req, res, next);

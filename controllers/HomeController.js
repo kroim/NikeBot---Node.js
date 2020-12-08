@@ -14,11 +14,28 @@ module.exports = BaseController.extend({
         let nikeEmail = req.session.user.email;
         let abck = await that.getNikeAbck(nikeEmail);
         let content = await that.getNikeTokens(nikeEmail);
-        let products = [];
+        let u_products = [];
         if (abck && content) {
-            await that.checkBillAddress(nikeEmail);
-            await that.checkPayment(nikeEmail);
-            products = await that.getStockProducts(nikeEmail);
+            that.checkBillAddress(nikeEmail);
+            that.checkPayment(nikeEmail);
+        }
+        // inStock products
+        // let products = await that.getApiProducts();
+        // upcoming products
+        let products = await that.getUpcomingProducts();
+        for (let i = 0; i < products.length; i++) {
+            let item = products[i];
+            let props = item['publishedContent']['properties'];
+            let p_info = item['productInfo'][0];
+            let u_item = {
+                anchor: 'https://www.nike.com/launch/t/' + props['seo']['slug'],
+                sku: props['products'][0]['styleColor'],
+                title: props['coverCard']['properties']['title'],
+                image: p_info['imageUrls']['productImageUrl'],
+                price: p_info['merchPrice']['currentPrice'],
+                publishDate: p_info['merchPrice']['commercePublishDate']
+            };
+            u_products.push(u_item)
         }
         let user = await UserModel.findOne({email: nikeEmail});
         let sku = ''; let color = 'All'; let size_min = 0; let size_max = 99; let price_min = 0; let price_max = 9999;
@@ -37,7 +54,7 @@ module.exports = BaseController.extend({
             size_max: size_max,
             price_min: price_min,
             price_max: price_max,
-            products: products,
+            products: u_products,
         })
     },
     profile: async function (req, res, next) {
@@ -85,7 +102,7 @@ module.exports = BaseController.extend({
             return res.send({status: 'error', message: res.cookie().__('Undefined method type')});
         }
     },
-    runBot: async function (req, res, next) {
+    runUpcoming: async function (req, res, next) {
         let that = this;
         let user = await UserModel.findOne({id: req.session.user.id});
         if (!user.payment_flag || !user.address_flag || !user.cvc) return res.send({status: 'verify', message: 'Account is not verified'});
@@ -107,9 +124,6 @@ module.exports = BaseController.extend({
         let price_min = parseFloat(req.body.price_min);
         let price_max = parseFloat(req.body.price_max);
         console.log("Running: ", sku, size_min, size_max, price_min, price_max);
-        // let stockProducts = await that.getStockProducts(user.email);
-        // let pageProducts = await that.getPageProducts(user.email);
-        // let products = await that.searchProducts(user.email, stockProducts, color, size_min, size_max, price_min, price_max);
         let upcomingProducts = await that.getUpcomingProducts();
         let u_products = [];
         for (let k = 0; k < upcomingProducts.length; k++) {
@@ -126,13 +140,72 @@ module.exports = BaseController.extend({
             };
             u_products.push(u_item);
         }
-        try {
-            // that.nikeCarts(user.email, u_products, sku, size_min, size_max, user.cvc);
-            await that.checkUpcomingSKU(user.email, u_products, sku, size_min, size_max, price_min, price_max, user.cvc);
-        } catch (e) {
-            console.log("checkout error: ", e);
+        let searchProducts = [];
+        for (let index = 0; index < u_products.length; index++) {
+            if (sku.indexOf(u_products[index].sku) > -1) {
+                searchProducts.push(u_products[index])
+            }
         }
-        return res.send({status: 'success', message: 'Running bot successfully', products: u_products});
+        if (searchProducts.length) {
+            try {
+                that.checkUpcomingSKU(user.email, searchProducts, sku, size_min, size_max, price_min, price_max, user.cvc);
+            } catch (e) {
+                console.log("checkout error in Home");
+            }
+            return res.send({status: 'success', message: 'Running bot successfully', products: searchProducts});
+        } else return res.send({status: 'error', message: 'There is exist a product by sku in Upcoming List.', products: searchProducts});
+    },
+    runInStock: async function (req, res, next) {
+        let that = this;
+        let user = await UserModel.findOne({id: req.session.user.id});
+        if (!user.payment_flag || !user.address_flag || !user.cvc) return res.send({status: 'verify', message: 'Account is not verified'});
+        let logItem = new LogModel({
+            user_id: user.id,
+            type: "user",
+            text: "Running stock bot"
+        });
+        await logItem.save();
+        let skuString = req.body.sku;
+        let _sku = skuString.split(',');
+        let sku = [];
+        for (let i = 0; i < _sku.length; i++) {
+            if (_sku[i].trim()) sku.push(_sku[i].trim())
+        }
+        let size_min = parseFloat(req.body.size_min);
+        let size_max = parseFloat(req.body.size_max);
+        let price_min = parseFloat(req.body.price_min);
+        let price_max = parseFloat(req.body.price_max);
+        console.log("Running Upcoming: ", sku, size_min, size_max, price_min, price_max);
+        let inStockProducts = await that.getApiProducts();
+        let u_products = [];
+        for (let k = 0; k < inStockProducts.length; k++) {
+            let item = inStockProducts[k];
+            let props = item['publishedContent']['properties'];
+            let p_info = item['productInfo'][0];
+            let u_item = {
+                anchor: 'https://www.nike.com/launch/t/' + props['seo']['slug'],
+                sku: props['products'][0]['styleColor'],
+                title: props['coverCard']['properties']['title'],
+                image: p_info['imageUrls']['productImageUrl'],
+                price: p_info['merchPrice']['currentPrice'],
+                publishDate: p_info['merchPrice']['commercePublishDate']
+            };
+            u_products.push(u_item);
+        }
+        let searchProducts = [];
+        for (let index = 0; index < u_products.length; index++) {
+            if (sku.indexOf(u_products[index].sku) > -1) {
+                searchProducts.push(u_products[index])
+            }
+        }
+        if (searchProducts.length) {
+            try {
+                that.newNikeCarts(user.email, searchProducts, sku, size_min, size_max, user.cvc);
+            } catch (e) {
+                console.log("checkout error: ", e);
+            }
+            return res.send({status: 'success', message: 'Running bot successfully', products: searchProducts});
+        } else return res.send({status: 'error', message: 'There is exist a product by sku in InStock yet.', products: searchProducts});
     },
     stopBot: async function (req, res, next) {
         let user = await UserModel.findOne({id: req.session.user.id});
