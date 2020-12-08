@@ -238,7 +238,7 @@ module.exports = {
     },
     getApiProducts: async function () {
         let that = this;
-        return await fetch("https://api.nike.com/product_feed/threads/v2/?anchor=9&count=21&filter=marketplace%28US%29&filter=language%28en%29&filter=inStock%28true%29&filter=productInfo.merchPrice.discounted%28false%29&filter=channelId%28010794e5-35fe-4e32-aaff-cd2c74f89d61%29&filter=exclusiveAccess%28true%2Cfalse%29&fields=active%2Cid%2ClastFetchTime%2CproductInfo%2CpublishedContent.nodes%2CpublishedContent.subType%2CpublishedContent.properties.coverCard%2CpublishedContent.properties.productCard%2CpublishedContent.properties.products%2CpublishedContent.properties.publish.collections%2CpublishedContent.properties.relatedThreads%2CpublishedContent.properties.seo%2CpublishedContent.properties.threadType%2CpublishedContent.properties.custom%2CpublishedContent.properties.title", {
+        return await fetch("https://api.nike.com/product_feed/threads/v2/?anchor=0&count=21&filter=marketplace%28US%29&filter=language%28en%29&filter=inStock%28true%29&filter=productInfo.merchPrice.discounted%28false%29&filter=channelId%28010794e5-35fe-4e32-aaff-cd2c74f89d61%29&filter=exclusiveAccess%28true%2Cfalse%29&fields=active%2Cid%2ClastFetchTime%2CproductInfo%2CpublishedContent.nodes%2CpublishedContent.subType%2CpublishedContent.properties.coverCard%2CpublishedContent.properties.productCard%2CpublishedContent.properties.products%2CpublishedContent.properties.publish.collections%2CpublishedContent.properties.relatedThreads%2CpublishedContent.properties.seo%2CpublishedContent.properties.threadType%2CpublishedContent.properties.custom%2CpublishedContent.properties.title", {
             "headers": {
                 "accept": "*/*",
                 "accept-language": "en-US,en;q=0.9,pl;q=0.8",
@@ -360,7 +360,6 @@ module.exports = {
         return searchResult;
     },
     nikeCarts: async function (nikeEmail, products, sku, size_min, size_max, cvc) {
-        console.log("size_min, size_max, cvc: ", sku, size_min, size_max, cvc);
         let that = this;
         let gotoCart = false;
         try {
@@ -645,34 +644,32 @@ module.exports = {
                             try {
                                 let toolPanel = document.querySelector('div.buttoncount-1');
                                 let sizeButtons = toolPanel.querySelectorAll('li[data-qa="size-available"] > button');
-                                console.log("sizeButtons length: ", sizeButtons.length);
                                 let size_flag = false;
                                 for (let k = 0; k < sizeButtons.length; k++) {
                                     let buttonText = sizeButtons[k].innerText.replace(/^\D+/g, '');
                                     if (parseFloat(buttonText) >= size_min && parseFloat(buttonText) <= size_max) {
-                                        console.log("Found size: ", buttonText);
                                         sizeButtons[k].click();
                                         size_flag = true;
                                         break;
                                     }
                                 }
                                 setTimeout(function () {
-                                    toolPanel.querySelector('button[data-qa="feed-buy-cta"]').click();
+                                    if (size_flag) toolPanel.querySelector('button[data-qa="feed-buy-cta"]').click();
                                 }, 500);
-                                resolve(size_flag);
+                                resolve({flag: size_flag, msg: "Found size"});
                             } catch (e) {
-                                reject(e.toString())
+                                resolve({flag: false, msg: e.toString()});
                             }
                         }));
                     }, {size_min, size_max});
                     console.log("Size Flag: ", sizeFlag);
-                    if (sizeFlag) {
+                    if (sizeFlag.flag) {
                         await itemPage.waitForTimeout(5000);
+                        gotoCart = true;
                         break;
                     }
                 } catch (e) {
                     console.log("checkout failed");
-                    console.log(e);
                 }
             }
         } catch (e) {
@@ -696,13 +693,98 @@ module.exports = {
             }
         }
     },
-    checkUpcomingSKU: async function (nikeEmail, all_products, sku, size_min, size_max, price_min, price_max, cvc) {
-        let products = await this.searchUpcomingSKU(all_products, sku, price_min, price_max);
+    checkUpcomingSKU: async function (nikeEmail, products, sku, size_min, size_max, price_min, price_max, cvc) {
         for (let i = 0; i < products.length; i++) {
             console.log(products[i].anchor);
-            console.log("Current Time: ", new Date().toISOString());
-            console.log("Publish Time: ", new Date(products[i]['publishDate']).toISOString());
         }
         await this.upcomingCarts(nikeEmail, products, size_min, size_max);
-    }
+    },
+    newNikeCarts: async function (nikeEmail, products, sku, size_min, size_max, cvc) {
+        let that = this;
+        let gotoCart = false;
+        try {
+            let browser = that.nBrowser[nikeEmail].browser;
+            let itemPage = await browser.newPage();
+            that.nBrowser[nikeEmail].itemPage = itemPage;
+            for (let i = 0; i < products.length; i++) {
+                let product = products[i];
+                try {
+                    await itemPage.goto(product.anchor, {waitUntil: "load", timeout: 0});
+                    await itemPage.waitForSelector('.buying-tools-container', {
+                        visible: true,
+                    });
+                    await that.scrollBoard(itemPage);
+                    await itemPage.waitForSelector('li[data-qa="size-available"] > button');
+                    await itemPage.waitForTimeout(1000);
+                    // check sizes
+                    let sizeFlag = await itemPage.evaluate(async ({size_min, size_max}) => {
+                        return await new Promise(((resolve, reject) => {
+                            try {
+                                let toolPanel = document.querySelector('.buying-tools-container');
+                                let sizeButtons = toolPanel.querySelectorAll('li[data-qa="size-available"] > button');
+                                let size_flag = false;
+                                for (let k = 0; k < sizeButtons.length; k++) {
+                                    let buttonText = sizeButtons[k].innerText.replace(/^\D+/g, '');
+                                    if (parseFloat(buttonText) >= size_min && parseFloat(buttonText) <= size_max) {
+                                        sizeButtons[k].click();
+                                        size_flag = true;
+                                        break;
+                                    }
+                                }
+                                setTimeout(function () {
+                                    toolPanel.querySelector('button[data-qa="add-to-cart"]').click();
+                                }, 500);
+                                resolve({flag: size_flag, msg: "Found size"});
+                            } catch (e) {
+                                resolve({flag: false, msg: e.toString()});
+                            }
+                        }));
+                    }, {size_min, size_max});
+                    console.log("Size Flag: ", sizeFlag);
+                    if (sizeFlag.flag) {
+                        await itemPage.waitForTimeout(5000);
+                        gotoCart = true;
+                        await itemPage.close();
+                        break;
+                    }
+                } catch (e) {
+                    console.log("checkout failed");
+                    // console.log(e);
+                    await itemPage.close();
+                }
+            }
+        } catch (e) {
+            try {
+                await that.nBrowser[nikeEmail].itemPage.close();
+            } catch (e) {
+                console.log("Item page session close");
+            }
+            gotoCart = false;
+        }
+        if (gotoCart) {
+            try {
+                let cartPage = this.nBrowser[nikeEmail].cartPage;
+                console.log("cart page ...");
+                await cartPage.goto(cartURL, {waitUntil: "load", timeout: 0});
+                await cartPage.waitForSelector('button[data-automation="member-checkout-button"]');
+                let checkout_flag = await cartPage.evaluate(() => {
+                    let checkoutButton = document.querySelectorAll('button[data-automation="member-checkout-button"]')[0];
+                    if (checkoutButton.disabled) {
+                        console.log("Disabled checkout button ...");
+                        return false;
+                    } else {
+                        console.log("click checkout button ...");
+                        checkoutButton.click();
+                        return true;
+                    }
+                });
+                console.log("clicked checkout ...", checkout_flag);
+                await cartPage.waitForTimeout(3000);
+                if (checkout_flag) {
+                    await that.nikeCheckout(nikeEmail, cvc, sku)
+                }
+            } catch (e) {
+            }
+        }
+    },
 };
